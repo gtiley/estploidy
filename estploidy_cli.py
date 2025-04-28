@@ -45,7 +45,6 @@ def cli():
 
 
 @cli.command(context_settings={'help_option_names': ['-h','--help']})
-
 @click.argument('sample_sheet',type=str)
 @click.option('-v', '--vcf_file', type=str, default='dummy.vcf', required=True,
               help = 'name of the input vcf file. should not be compressed.'
@@ -81,6 +80,56 @@ def individual_frequencies(sample_sheet, vcf_file, minimum_depth, minimum_count,
             check_dir(output_dir)
             logging.info(f'Matrix of allele frequencies for each individual will be written to: {output_dir}')
         get_ind_freqs(ind_map, vcf_file, minimum_depth, minimum_count, minimum_quality, output_dir)
+        
+    else:
+        click.echo(f'Warning: Imputation method {imputation_method} is not supported. Skipping allele frequencies.')
+    end_time = time.process_time()
+    logging.info(f'End at {end_time}')
+    compute_time = (end_time - start_time) / 60
+    logging.info(f'Total compute time was {compute_time} minutes')
+
+
+
+@cli.command(context_settings={'help_option_names': ['-h','--help']})
+@click.argument('sample_sheet',type=str)
+@click.option('-v', '--vcf_file', type=str, default='dummy.vcf', required=True,
+              help = 'name of the input vcf file. should not be compressed.'
+)
+@click.option('-i', '--imputation_method', type=str, default='drop', required=False,
+              help = 'decide how to impute missing data if at all. options are: drop, mean, and popmean'
+)
+@click.option('-d', '--minimum_depth', type=int, default=10, required=False,
+              help = 'The minimum depth of a site to be treated as data'
+)
+@click.option('-c', '--minimum_count', type=int, default=3, required=False,
+              help = 'The minimum count of the minor allele for a site to be treated as data'
+)
+@click.option('-q', '--minimum_quality', type=int, default=20, required=False,
+              help = 'The minimum phred-scaled genotype quality score'
+)
+@click.option('-o', '--output_dir', type=str, default='dummy', required=False,
+              help = 'name of the directory where . will be a matrix of allele frequencies'
+)
+@click.option('-m', '--estimation_method', type=str, default='gmm', required=False,
+              help = 'Method for fitting a model to allele balance data. Only option currently is gmm'
+)
+def estimate_ploidy(sample_sheet, vcf_file, minimum_depth, minimum_count, minimum_quality, imputation_method, estimation_method, output_dir):
+    from estploidy.utils import map_individuals
+    from estploidy.utils import check_dir
+    from estploidy.calculate_frequencies.calculate_frequencies import get_ind_freqs
+    from estploidy.fit_mixtures.fit_mixtures import est_ploidy
+
+    start_time = time.process_time()
+    logging.info(f'Begin at {start_time}')
+    logging.info(f'Checking all individuals in {sample_sheet} are present in {vcf_file}')
+    ind_map = map_individuals(sample_sheet, vcf_file)
+    logging.info(f'Calculating individual allele frequencies from {vcf_file}')
+    if (imputation_method == 'drop'):
+        if (output_dir != 'dummy'):
+            check_dir(output_dir)
+            logging.info(f'Matrix of allele frequencies for each individual will be written to: {output_dir}')
+            ab_mat = get_ind_freqs(ind_map, vcf_file, minimum_depth, minimum_count, minimum_quality, output_dir)
+            est_ploidy(ab_mat, estimation_method)
         
     else:
         click.echo(f'Warning: Imputation method {imputation_method} is not supported. Skipping allele frequencies.')
