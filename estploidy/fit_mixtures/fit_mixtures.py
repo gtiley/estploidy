@@ -1,29 +1,36 @@
 import numpy as np
-import pandas as pd
+from estploidy.fit_mixtures.plot_mixtures import plot_gmm_fit_sklearn
 from estploidy.fit_mixtures.gmm import GaussianMixture
 
-def fit_gmm_to_ab(ind_dat, n_components):
+def fit_gmm_to_ab(dat):
     """
     Fit Gaussian Mixture Model (GMM) to allele balance data.
     
     Parameters:
-        ab_dat (np.array): Allele balance data.
+        dat (np.array): Allele balance data.
         n_components (int): Number of components in the GMM.
     """
-    dat = ind_dat
-    # Reshape the array to 2D if necessary
-    # Example: allele_balance_array = np.random.rand(100, 10)  # Replace with actual data
-    if len(ind_dat.shape) == 1:
-        dat = ind_dat.reshape(-1, 1)
-    # Fit GMM to allele balance data   
-    gmm = GaussianMixture(n_components=n_components)
-    gmm.fit(dat)
-    # Print fitted parameters
-    print("Fitted GMM parameters:")
-    print(f"Means: {gmm.means.data.numpy()}")
-    print(f"Std devs: {gmm.stds.data.numpy()}")
-    print(f"Weights: {gmm.weights.data.numpy()}")
-    return(gmm)
+    # Fit GMM to allele balance data
+    best_n = 1
+    best_bic = -np.inf
+    for i in range(1, 7):
+        gmm = GaussianMixture(n_components= i)
+        gmm.fit(dat)
+        score = gmm.score(dat)
+        bic = gmm.bic(dat)
+        print("Fitted GMM parameters:")
+        print("Means: ", gmm.means_)
+        print("Covariances: ", gmm.covariances_)
+        print("Weights: ", gmm.weights_)
+        # Print the best likelihood
+        print(f'Best likelihood: {score}')
+        print(f'BIC: {bic}')
+        if bic > best_bic:
+            best_bic = bic
+            best_n = i
+        plot_gmm_fit_sklearn(dat, gmm, title=f"GMM Fit to Allele Balance Data (Sample {i+1})")
+
+    return(best_n)
 
 def est_ploidy(ab_dat, method):
     """
@@ -41,17 +48,13 @@ def est_ploidy(ab_dat, method):
             ind_dat = ab_dat[0,:,i]
             ind_mask = ab_dat[3,:,i] == 1
             ind_dat_filtered = ind_dat[ind_mask]
+            dat = ind_dat_filtered
+            if len(ind_dat_filtered.shape) == 1:
+                dat = ind_dat_filtered.reshape(-1, 1)
             # Fit GMM to allele balance data
             print(f"Individual {i}:")
-            gmm = fit_gmm_to_ab(ind_dat_filtered, n_components=2)
-            # Save the fitted GMM parameters
-            # (e.g., means, std devs, weights) for each individual
-            # You can store these in a DataFrame or any other structure as needed
-            # For example, you can create a DataFrame to store the results
-            # ploidy_df = pd.DataFrame({'Means': gmm.means.data.numpy(),
-            #                           'Std devs': gmm.stds.data.numpy(),
-            #                           'Weights': gmm.weights.data.numpy()})
-            # Note: You may want to modify the above line to store results in a more structured way
-            # For now, just print the results
+            best_n = fit_gmm_to_ab(dat)
+            print(f'{best_n}')
+            
     else:
         raise ValueError("Unsupported method. Use 'gmm'.")
