@@ -1,8 +1,29 @@
 import numpy as np
+import sys
 from estploidy.fit_mixtures.plot_mixtures import plot_gmm_fit_sklearn
-from estploidy.fit_mixtures.gmm import GaussianMixture
+#from estploidy.fit_mixtures.gmm import GaussianMixture
+from estploidy.fit_mixtures.gmm import GaussianMixtureFixedMeans
 
-def fit_gmm_to_ab(dat):
+def get_fixed_params(n_components):
+    means = None
+    if (n_components > 6):
+        sys.ext('ERROR: Ploidy greater than 6 is not implemented or recommended! Stopping.')
+    elif(n_components < 1):
+        sys.exit('ERROR: The maximum ploidy must be a psotive integer! Stopping.')
+    else:
+        if n_components == 1:
+            means = np.array([0.5]).reshape(-1,1)
+        if n_components == 2:
+            means = np.array([1/3,2/3]).reshape(-1,1)
+        if n_components == 3:
+            means = np.array([0.25,0.5,0.75]).reshape(-1,1)
+        if n_components == 4:
+            means = np.array([0.2,0.4,0.6,0.8]).reshape(-1,1)
+        if n_components == 5:
+            means = np.array([1/6,2/6,0.5,4/6,5/6]).reshape(-1,1)
+    return(means)
+
+def fit_gmm_to_ab(dat, max_ploidy):
     """
     Fit Gaussian Mixture Model (GMM) to allele balance data.
     
@@ -13,8 +34,10 @@ def fit_gmm_to_ab(dat):
     # Fit GMM to allele balance data
     best_n = 1
     best_bic = -np.inf
-    for i in range(1, 7):
-        gmm = GaussianMixture(n_components= i)
+    for i in range(1, max_ploidy):
+        #gmm = GaussianMixture(n_components= i)
+        means = get_fixed_params(i)
+        gmm = GaussianMixtureFixedMeans(n_components = i, means_init = means)
         gmm.fit(dat)
         score = gmm.score(dat)
         bic = gmm.bic(dat)
@@ -32,13 +55,14 @@ def fit_gmm_to_ab(dat):
 
     return(best_n)
 
-def est_ploidy(ab_dat, method):
+def est_ploidy(ab_dat, method, max_ploidy):
     """
     Estimate ploidy from allele balance data using the specified method.
     
     Parameters:
         ab_dat (np.array): Allele balance data returned from get_ind_freqs.
         method (str): Method for estimating ploidy ('gmm' or 'other').
+        max_ploidy (int): The maximum ploidy expected.
     
     Returns:
         ploidy_df: DataFrame containing estimated ploidy for each individual.
@@ -53,7 +77,7 @@ def est_ploidy(ab_dat, method):
                 dat = ind_dat_filtered.reshape(-1, 1)
             # Fit GMM to allele balance data
             print(f"Individual {i}:")
-            best_n = fit_gmm_to_ab(dat)
+            best_n = fit_gmm_to_ab(dat, max_ploidy)
             print(f'{best_n}')
             
     else:

@@ -113,7 +113,10 @@ def individual_frequencies(sample_sheet, vcf_file, minimum_depth, minimum_count,
 @click.option('-m', '--estimation_method', type=str, default='gmm', required=False,
               help = 'Method for fitting a model to allele balance data. Only option currently is gmm'
 )
-def estimate_ploidy(sample_sheet, vcf_file, minimum_depth, minimum_count, minimum_quality, imputation_method, estimation_method, output_dir):
+@click.option('-p', '--maximum_ploidy', type=int, default=4, required=False,
+              help = 'The maximum expected ploidy of an individual. Must be between two and six.'
+)
+def estimate_ploidy(sample_sheet, vcf_file, minimum_depth, minimum_count, minimum_quality, imputation_method, estimation_method, maximum_ploidy, output_dir):
     from estploidy.utils import map_individuals
     from estploidy.utils import check_dir
     from estploidy.calculate_frequencies.calculate_frequencies import get_ind_freqs
@@ -129,7 +132,7 @@ def estimate_ploidy(sample_sheet, vcf_file, minimum_depth, minimum_count, minimu
             check_dir(output_dir)
             logging.info(f'Matrix of allele frequencies for each individual will be written to: {output_dir}')
             ab_mat = get_ind_freqs(ind_map, vcf_file, minimum_depth, minimum_count, minimum_quality, output_dir)
-            est_ploidy(ab_mat, estimation_method)
+            est_ploidy(ab_mat, estimation_method, maximum_ploidy)
         
     else:
         click.echo(f'Warning: Imputation method {imputation_method} is not supported. Skipping allele frequencies.')
