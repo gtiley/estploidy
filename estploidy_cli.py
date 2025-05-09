@@ -132,7 +132,7 @@ def estimate_ploidy(sample_sheet, vcf_file, minimum_depth, minimum_count, minimu
             check_dir(output_dir)
             logging.info(f'Matrix of allele frequencies for each individual will be written to: {output_dir}')
             ab_mat = get_ind_freqs(ind_map, vcf_file, minimum_depth, minimum_count, minimum_quality, output_dir)
-            est_ploidy(ab_mat, estimation_method, maximum_ploidy)
+            est_ploidy(ab_mat, estimation_method, maximum_ploidy, output_dir)
         
     else:
         click.echo(f'Warning: Imputation method {imputation_method} is not supported. Skipping allele frequencies.')

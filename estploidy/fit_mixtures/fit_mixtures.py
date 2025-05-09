@@ -1,5 +1,6 @@
 import numpy as np
 import sys
+import math
 from estploidy.fit_mixtures.plot_mixtures import plot_gmm_fit_sklearn
 #from estploidy.fit_mixtures.gmm import GaussianMixture
 from estploidy.fit_mixtures.gmm import GaussianMixtureFixedMeans
@@ -9,7 +10,7 @@ def get_fixed_params(n_components):
     if (n_components > 6):
         sys.ext('ERROR: Ploidy greater than 6 is not implemented or recommended! Stopping.')
     elif(n_components < 1):
-        sys.exit('ERROR: The maximum ploidy must be a psotive integer! Stopping.')
+        sys.exit('ERROR: The maximum ploidy must be a positive integer! Stopping.')
     else:
         if n_components == 1:
             means = np.array([0.5]).reshape(-1,1)
@@ -23,7 +24,7 @@ def get_fixed_params(n_components):
             means = np.array([1/6,2/6,0.5,4/6,5/6]).reshape(-1,1)
     return(means)
 
-def fit_gmm_to_ab(dat, max_ploidy):
+def fit_gmm_to_ab(dat, max_ploidy, plot_name, output_dir):
     """
     Fit Gaussian Mixture Model (GMM) to allele balance data.
     
@@ -34,6 +35,7 @@ def fit_gmm_to_ab(dat, max_ploidy):
     # Fit GMM to allele balance data
     best_n = 1
     best_bic = -np.inf
+    best_gmm = None
     for i in range(1, max_ploidy):
         #gmm = GaussianMixture(n_components= i)
         means = get_fixed_params(i)
@@ -51,11 +53,12 @@ def fit_gmm_to_ab(dat, max_ploidy):
         if bic > best_bic:
             best_bic = bic
             best_n = i
-        plot_gmm_fit_sklearn(dat, gmm, title=f"GMM Fit to Allele Balance Data (Sample {i+1})")
+            best_gmm = gmm
+    plot_gmm_fit_sklearn(dat, best_gmm, output_dir, plot_name, title=f'GMM Fit to Allele Balance Data (Sample {i+1})')
 
     return(best_n)
 
-def est_ploidy(ab_dat, method, max_ploidy):
+def est_ploidy(ab_dat, method, max_ploidy, output_dir):
     """
     Estimate ploidy from allele balance data using the specified method.
     
@@ -77,7 +80,7 @@ def est_ploidy(ab_dat, method, max_ploidy):
                 dat = ind_dat_filtered.reshape(-1, 1)
             # Fit GMM to allele balance data
             print(f"Individual {i}:")
-            best_n = fit_gmm_to_ab(dat, max_ploidy)
+            best_n = fit_gmm_to_ab(dat, max_ploidy, i, output_dir)
             print(f'{best_n}')
             
     else:
