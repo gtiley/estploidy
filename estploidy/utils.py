@@ -3,13 +3,13 @@ import os
 
 def check_dir(my_dir):
     if os.path.exists(my_dir):
-        print('Existing output directory found. Writing output to: {my_dir}\n')
+        print(f'Existing output directory found. Writing output to: {my_dir}\n')
     else:
         os.makedirs(my_dir)
-        print('Output files will be written to: {my_dir}\n')
+        print(f'Output files will be written to: {my_dir}\n')
 
 def decompress_vcf(vcf_file):
-    pass
+    print(f'{vcf_file}\n')
 
 def map_individuals(sample_sheet, vcf_file):
     '''

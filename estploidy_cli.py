@@ -116,7 +116,10 @@ def individual_frequencies(sample_sheet, vcf_file, minimum_depth, minimum_count,
 @click.option('-p', '--maximum_ploidy', type=int, default=4, required=False,
               help = 'The maximum expected ploidy of an individual. Must be between two and six.'
 )
-def estimate_ploidy(sample_sheet, vcf_file, minimum_depth, minimum_count, minimum_quality, imputation_method, estimation_method, maximum_ploidy, output_dir):
+@click.option('-f', '--pate_flag', type=bool, default=False, required=False,
+              help = 'Is the VCF a product of the PATE pipeline?'
+)
+def estimate_ploidy(sample_sheet, vcf_file, minimum_depth, minimum_count, minimum_quality, imputation_method, estimation_method, maximum_ploidy, pate_flag, output_dir):
     from estploidy.utils import map_individuals
     from estploidy.utils import check_dir
     from estploidy.calculate_frequencies.calculate_frequencies import get_ind_freqs
@@ -131,7 +134,7 @@ def estimate_ploidy(sample_sheet, vcf_file, minimum_depth, minimum_count, minimu
         if (output_dir != 'dummy'):
             check_dir(output_dir)
             logging.info(f'Matrix of allele frequencies for each individual will be written to: {output_dir}')
-            ab_mat = get_ind_freqs(ind_map, vcf_file, minimum_depth, minimum_count, minimum_quality, output_dir)
+            ab_mat = get_ind_freqs(ind_map, vcf_file, minimum_depth, minimum_count, minimum_quality, pate_flag, output_dir)
             est_ploidy(ab_mat, estimation_method, maximum_ploidy, output_dir)
         
     else:

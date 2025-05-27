@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 
-def get_ind_freqs(ind_map, vcf_file, min_depth, min_count, min_qual, output_dir):
+def get_ind_freqs(ind_map, vcf_file, min_depth, min_count, min_qual, pate_flag, output_dir):
     '''
     Returns an np.array object of allele balance across sites for each individual from a multisample vcf.
 
@@ -35,11 +35,15 @@ def get_ind_freqs(ind_map, vcf_file, min_depth, min_count, min_qual, output_dir)
                 for i in range(9, len(temp)):
                     this_tax = ''
                     if '/' in temp[i]:
-                        tax_path = temp[i].split('/')
-                        this_tax = tax_path[-1]
+                        if pate_flag == False:
+                            tax_path = temp[i].split('/')
+                            this_tax = tax_path[-1]
+                        elif pate_flag == True:
+                            tax_path = temp[i].split('/')
+                            this_tax = tax_path[-2]
                     else:
                         this_tax = temp[i]
-                    print(this_tax)
+                    #print(this_tax)
                     if this_tax in ind_map.keys():
                         tax_list.append(this_tax)
                         n_variants[this_tax] = 0
@@ -56,7 +60,7 @@ def get_ind_freqs(ind_map, vcf_file, min_depth, min_count, min_qual, output_dir)
             else:
                 if skip_header == 0:
                     temp = line.split()
-                    if temp[6] == 'PASS':
+                    if (temp[6] == 'PASS' or ((pate_flag == True) and temp[6] == '.')):
                         for i in range(9, len(temp)): ####Continue fixing here
                             if i in vcf_map.keys():
                                 ref_counts = 0
@@ -68,20 +72,22 @@ def get_ind_freqs(ind_map, vcf_file, min_depth, min_count, min_qual, output_dir)
                                 indicator = 0
                                 genotype_string = temp[i]
                                 genotype_fields = genotype_string.split(':')
-                                if re.match(r'\d+,\d+', genotype_fields[1]):
-                                    allele_counts = genotype_fields[1].split(',')
-                                    print(allele_counts)
-                                    ref_counts = int(allele_counts[0])
-                                    alt_counts = int(allele_counts[1])
-                                    total_count = ref_counts + alt_counts
-                                    if re.match(r'\d+', genotype_fields[3]):
-                                        genotype_quality = int(genotype_fields[3])
-                                    if (total_count > 0):
-                                        allele_balance = alt_counts / total_count
-                                    if ((total_count >= min_depth) and (ref_counts >= 1) and (alt_counts >= min_count) and (genotype_quality >= min_qual)):
-                                        indicator = 1
-                                else:
-                                    print(f'WARNING: Incorrectly formatted VCF fields!\n--> {vcf_map[i]} at variant {n_variants[vcf_map[i]]}\n-->{temp[0]}: {temp[1]}\n')
+                                # Anticipating that lines with fewer than 5 fields are not biallelic snps
+                                if (len(genotype_fields) >= 5):
+                                    if re.match(r'\d+,\d+', genotype_fields[1]):
+                                        allele_counts = genotype_fields[1].split(',')
+                                        #print(allele_counts)
+                                        ref_counts = int(allele_counts[0])
+                                        alt_counts = int(allele_counts[1])
+                                        total_count = ref_counts + alt_counts
+                                        if re.match(r'\d+', genotype_fields[3]):
+                                            genotype_quality = int(genotype_fields[3])
+                                        if (total_count > 0):
+                                            allele_balance = alt_counts / total_count
+                                        if ((total_count >= min_depth) and (ref_counts >= 1) and (alt_counts >= min_count) and (genotype_quality >= min_qual)):
+                                            indicator = 1
+                                    else:
+                                        print(f'WARNING: Incorrectly formatted VCF fields!\n--> {vcf_map[i]} at variant {n_variants[vcf_map[i]]}\n-->{temp[0]}: {temp[1]}\n')
                                 
                                 allele_balance_data[vcf_map[i]].append(allele_balance)
                                 site_depth_data[vcf_map[i]].append(total_count)
