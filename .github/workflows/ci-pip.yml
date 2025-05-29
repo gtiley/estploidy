@@ -27,7 +27,7 @@ jobs:
       - name: Install dependencies
         run: |
             python -m pip install --upgrade pip
-            conda install --name estploidy click
+            pip install -r requirements.txt
             pip install .
 
       - name: Check help menu
