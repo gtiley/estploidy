@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import norm
 
-def plot_gmm_fit_sklearn(data, gmm, output_dir, plot_name, n_points=1000, title="GMM Fit to Data"):
+def plot_gmm_fit_sklearn(data, gmm, output_dir, plot_name="result.fit.png", n_points=1000, title="GMM Fit to Data"):
     """
     Plot histogram of observed data with fitted GMM components from sklearn.
     
@@ -43,3 +43,4 @@ def plot_gmm_fit_sklearn(data, gmm, output_dir, plot_name, n_points=1000, title=
     plt.legend()
     plt.grid(True, alpha=0.3)
     plt.savefig(f'{output_dir}/{plot_name}.png', dpi=300)
+    plt.close()

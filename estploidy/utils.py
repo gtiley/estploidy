@@ -27,3 +27,36 @@ def map_individuals(sample_sheet, vcf_file):
     ind_map = df.set_index('individual').to_dict('index')
     print(ind_map)
     return(ind_map)
+
+def get_vcf_dimensions(vcf_file, pate_flag, ind_map):
+    n_tax = 0
+    n_sites = 0
+    skip_header = 1
+    with open(vcf_file,'r') as fh:
+        for line in fh:
+            line = line.strip()
+            if '#CHROM' in line:
+                temp = line.split()
+                #print(line)
+                for i in range(9, len(temp)):
+                    this_tax = ''
+                    if '/' in temp[i]:
+                        if pate_flag == False:
+                            tax_path = temp[i].split('/')
+                            this_tax = tax_path[-1]
+                        elif pate_flag == True:
+                            tax_path = temp[i].split('/')
+                            this_tax = tax_path[-2]
+                    else:
+                        this_tax = temp[i]
+                    #print(this_tax)
+                    if this_tax in ind_map.keys():
+                        n_tax = n_tax + 1
+                skip_header = 0
+            else:
+                if skip_header == 0:
+                    temp = line.split()
+                    if (temp[6] == 'PASS' or ((pate_flag == True) and temp[6] == '.')):
+                        n_sites = n_sites + 1
+    print(f'Found {n_sites} sites and {n_tax} individuals')
+    return n_sites,n_tax

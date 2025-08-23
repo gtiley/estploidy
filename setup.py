@@ -16,7 +16,8 @@ setup(
     install_requires=[
         'pandas>=2.2.2',
         'scikit-learn>=1.5.1',
-        'click>=8.1.7'
+        'click>=8.1.7',
+        'matplotlib>=3.10.5'
     ],
     entry_points = '''
         [console_scripts]

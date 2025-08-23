@@ -24,11 +24,12 @@ def get_fixed_params(n_components):
             means = np.array([1/6,2/6,0.5,4/6,5/6]).reshape(-1,1)
     return(means)
 
-def fit_gmm_to_ab(dat, max_ploidy, plot_name, output_dir):
+def fit_gmm_to_ab(ind_name, dat, max_ploidy, plot_name, output_dir):
     """
     Fit Gaussian Mixture Model (GMM) to allele balance data.
     
     Parameters:
+        ind_name (string): The name of the individual
         dat (np.array): Allele balance data.
         n_components (int): Number of components in the GMM.
     """
@@ -43,26 +44,30 @@ def fit_gmm_to_ab(dat, max_ploidy, plot_name, output_dir):
         gmm.fit(dat)
         score = gmm.score(dat)
         bic = gmm.bic(dat)
-        print("Fitted GMM parameters:")
-        print("Means: ", gmm.means_)
-        print("Covariances: ", gmm.covariances_)
-        print("Weights: ", gmm.weights_)
+        output_file = f'{output_dir}/{ind_name}.fit.txt'
+        outfile = open(output_file, 'w')
+        outfile.write("Fitted GMM parameters:")
+        outfile.write(f'Means:\n {gmm.means_}')
+        outfile.write(f'Covariances:\n {gmm.covariances_}')
+        outfile.write(f'Weights:\n {gmm.weights_}')
         # Print the best likelihood
-        print(f'Best likelihood: {score}')
-        print(f'BIC: {bic}')
+        outfile.write(f'Best likelihood: {score}')
+        outfile.write(f'BIC: {bic}')
+        outfile.close()
         if bic > best_bic:
             best_bic = bic
             best_n = i
             best_gmm = gmm
-    plot_gmm_fit_sklearn(dat, best_gmm, output_dir, plot_name, title=f'GMM Fit to Allele Balance Data (Sample {i+1})')
+    plot_gmm_fit_sklearn(dat, best_gmm, output_dir, plot_name=f'{ind_name}.fit', title=f'GMM Fit to Allele Balance Data ({ind_name})')
 
     return(best_n)
 
-def est_ploidy(ab_dat, method, max_ploidy, output_dir):
+def est_ploidy(tax_list, ab_dat, method, max_ploidy, minimum_sites, output_dir):
     """
     Estimate ploidy from allele balance data using the specified method.
     
     Parameters:
+        tax_list (list): A list of individual names corresponding to the individual order of ab_dat
         ab_dat (np.array): Allele balance data returned from get_ind_freqs.
         method (str): Method for estimating ploidy ('gmm' or 'other').
         max_ploidy (int): The maximum ploidy expected.
@@ -71,17 +76,28 @@ def est_ploidy(ab_dat, method, max_ploidy, output_dir):
         ploidy_df: DataFrame containing estimated ploidy for each individual.
     """
     if method == 'gmm':
+        output_file = f'{output_dir}/ploidy.txt'
+        outfile = open(output_file, 'w')
         for i in range(len(ab_dat[0,0,:])):
+            ind_name = tax_list[i]
             ind_dat = ab_dat[0,:,i]
             ind_mask = ab_dat[3,:,i] == 1
             ind_dat_filtered = ind_dat[ind_mask]
-            dat = ind_dat_filtered
-            if len(ind_dat_filtered.shape) == 1:
-                dat = ind_dat_filtered.reshape(-1, 1)
+            ind_dat_buffer = (ind_dat_filtered > 0.05) & (ind_dat_filtered < 0.95)
+            ind_dat_filtered_truncated = ind_dat_filtered[ind_dat_buffer]
+            dat = ind_dat_filtered_truncated
+            if len(ind_dat_filtered_truncated.shape) == 1:
+                dat = ind_dat_filtered_truncated.reshape(-1, 1)
             # Fit GMM to allele balance data
-            print(f"Individual {i}:")
-            best_n = fit_gmm_to_ab(dat, max_ploidy, i, output_dir)
-            print(f'{best_n}')
-            
+            print(f"Individual {ind_name}:")
+            #print(f'min sites: {minimum_sites}\n')
+            #print(f'{len(dat[:])}\t{dat.shape}\n')
+            if len(dat[:]) >= minimum_sites:
+                best_n = fit_gmm_to_ab(ind_name, dat, max_ploidy, i, output_dir)
+                #print(f'{best_n}')
+                outfile.write(f'{ind_name}\t{best_n + 1}\n')
+            else:
+                print('Warning: Sample skipped due to low site count passing filters.\n')
+        outfile.close()
     else:
         raise ValueError("Unsupported method. Use 'gmm'.")
