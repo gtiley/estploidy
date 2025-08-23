@@ -1,7 +1,6 @@
 click==8.2.1
 contourpy==1.3.3
 cycler==0.12.1
-estploidy==0.1.0
 fonttools==4.59.1
 joblib==1.5.1
 kiwisolver==1.4.9
