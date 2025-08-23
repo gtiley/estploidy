@@ -33,7 +33,7 @@ import logging
 def cli():
     current_time = datetime.now()
     time_string = current_time.strftime('%Y-%m-%d-%H-%M-%S')
-    logfile = time_string + 'estploidy.log'
+    logfile = time_string + '_estploidy.log'
     print(f'Start estploidy at {current_time}')
     logging.basicConfig(
        filename = logfile,
@@ -61,25 +61,31 @@ def cli():
 @click.option('-q', '--minimum_quality', type=int, default=20, required=False,
               help = 'The minimum phred-scaled genotype quality score'
 )
+@click.option('-f', '--pate_flag', type=bool, default=False, required=False,
+              help = 'Is the VCF a product of the PATE pipeline?'
+)
 @click.option('-o', '--output_dir', type=str, default='dummy', required=False,
               help = 'name of the directory where . will be a matrix of allele frequencies'
 )
 
-def individual_frequencies(sample_sheet, vcf_file, minimum_depth, minimum_count, minimum_quality, imputation_method, output_dir):
+def individual_frequencies(sample_sheet, vcf_file, minimum_depth, minimum_count, minimum_quality, imputation_method, pate_flag, output_dir):
     from estploidy.utils import map_individuals
     from estploidy.utils import check_dir
+    from estploidy.utils import get_vcf_dimensions
     from estploidy.calculate_frequencies.calculate_frequencies import get_ind_freqs
 
     start_time = time.process_time()
     logging.info(f'Begin at {start_time}')
     logging.info(f'Checking all individuals in {sample_sheet} are present in {vcf_file}')
     ind_map = map_individuals(sample_sheet, vcf_file)
+    logging.info(f'Checking dimensions of VCF')
+    n_sites, n_tax = get_vcf_dimensions(vcf_file, pate_flag, ind_map)
     logging.info(f'Calculating individual allele frequencies from {vcf_file}')
     if (imputation_method == 'drop'):
         if (output_dir != 'dummy'):
             check_dir(output_dir)
             logging.info(f'Matrix of allele frequencies for each individual will be written to: {output_dir}')
-        get_ind_freqs(ind_map, vcf_file, minimum_depth, minimum_count, minimum_quality, output_dir)
+        get_ind_freqs(n_sites, n_tax, ind_map, vcf_file, minimum_depth, minimum_count, minimum_quality, pate_flag, output_dir)
         
     else:
         click.echo(f'Warning: Imputation method {imputation_method} is not supported. Skipping allele frequencies.')
@@ -104,7 +110,7 @@ def individual_frequencies(sample_sheet, vcf_file, minimum_depth, minimum_count,
 @click.option('-c', '--minimum_count', type=int, default=3, required=False,
               help = 'The minimum count of the minor allele for a site to be treated as data'
 )
-@click.option('-q', '--minimum_quality', type=int, default=20, required=False,
+@click.option('-q', '--minimum_quality', type=int, default=40, required=False,
               help = 'The minimum phred-scaled genotype quality score'
 )
 @click.option('-o', '--output_dir', type=str, default='dummy', required=False,
@@ -113,15 +119,19 @@ def individual_frequencies(sample_sheet, vcf_file, minimum_depth, minimum_count,
 @click.option('-m', '--estimation_method', type=str, default='gmm', required=False,
               help = 'Method for fitting a model to allele balance data. Only option currently is gmm'
 )
-@click.option('-p', '--maximum_ploidy', type=int, default=4, required=False,
+@click.option('-p', '--maximum_ploidy', type=int, default=6, required=False,
               help = 'The maximum expected ploidy of an individual. Must be between two and six.'
 )
 @click.option('-f', '--pate_flag', type=bool, default=False, required=False,
               help = 'Is the VCF a product of the PATE pipeline?'
 )
-def estimate_ploidy(sample_sheet, vcf_file, minimum_depth, minimum_count, minimum_quality, imputation_method, estimation_method, maximum_ploidy, pate_flag, output_dir):
+@click.option('-s', '--minimum_sites', type=int, default=100, required=False,
+              help = 'What are the minimum number of data points needed to fit a mixture model?'
+)
+def estimate_ploidy(sample_sheet, vcf_file, minimum_depth, minimum_count, minimum_quality, imputation_method, estimation_method, maximum_ploidy, pate_flag, minimum_sites, output_dir):
     from estploidy.utils import map_individuals
     from estploidy.utils import check_dir
+    from estploidy.utils import get_vcf_dimensions
     from estploidy.calculate_frequencies.calculate_frequencies import get_ind_freqs
     from estploidy.fit_mixtures.fit_mixtures import est_ploidy
 
@@ -129,13 +139,15 @@ def estimate_ploidy(sample_sheet, vcf_file, minimum_depth, minimum_count, minimu
     logging.info(f'Begin at {start_time}')
     logging.info(f'Checking all individuals in {sample_sheet} are present in {vcf_file}')
     ind_map = map_individuals(sample_sheet, vcf_file)
+    logging.info(f'Checking dimensions of VCF')
+    n_sites, n_tax = get_vcf_dimensions(vcf_file, pate_flag, ind_map)
     logging.info(f'Calculating individual allele frequencies from {vcf_file}')
     if (imputation_method == 'drop'):
         if (output_dir != 'dummy'):
             check_dir(output_dir)
             logging.info(f'Matrix of allele frequencies for each individual will be written to: {output_dir}')
-            ab_mat = get_ind_freqs(ind_map, vcf_file, minimum_depth, minimum_count, minimum_quality, pate_flag, output_dir)
-            est_ploidy(ab_mat, estimation_method, maximum_ploidy, output_dir)
+            tax_list, ab_mat = get_ind_freqs(n_sites, n_tax, ind_map, vcf_file, minimum_depth, minimum_count, minimum_quality, pate_flag, output_dir)
+            est_ploidy(tax_list, ab_mat, estimation_method, maximum_ploidy, minimum_sites, output_dir)
         
     else:
         click.echo(f'Warning: Imputation method {imputation_method} is not supported. Skipping allele frequencies.')

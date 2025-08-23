@@ -17,6 +17,7 @@ conda create --name estploidy python=3.11
 conda install --name estploidy scikit-learn
 conda install --name estploidy pandas=2.2.2
 conda install --name estploidy click
+conda install --name estploidy matplotlib=3.10.5
 ```
 
-This estploidy environement was used to generate the *requirements.txt* and *environement.yml* files. Either could be used to install dependencies with `pip install -r requirements.txt` or `conda env create -f environment.yml`, respectively.
+This estploidy environement was used to generate the *requirements.txt* and *environement.yml* files. Either could be used to install dependencies with `pip install -r requirements.txt` or `conda env create -f environment.yml`, respectively. The *requirements.txt* file was created from within the environment with `pip list --format=freeze > requirements.txt` and the *enironment.yml* file was created with `conda env export -n estploidy > environment.yml`.
