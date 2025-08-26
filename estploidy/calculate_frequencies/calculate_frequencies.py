@@ -1,6 +1,7 @@
 import re
 import numpy as np
 import pandas as pd
+import logging
 
 
 def get_ind_freqs(n_sites, n_tax, ind_map, vcf_file, min_depth, min_count, min_qual, pate_flag, output_dir):
@@ -19,7 +20,8 @@ def get_ind_freqs(n_sites, n_tax, ind_map, vcf_file, min_depth, min_count, min_q
         output_dir (string): the directory where all results will be written
 
     Returns:
-        None
+        tax_list (list): A list of individual labels
+        ab_dat: a numpy array of allele balance data as well as depth, genotype quality, and filtering information
     '''
     
     # Goal - these all need to be typed as arrays to keep the memory from exploding
@@ -145,9 +147,9 @@ def get_ind_freqs(n_sites, n_tax, ind_map, vcf_file, min_depth, min_count, min_q
     
     #ab_df = pd.DataFrame(allele_balance_data)
     #print(ab_df)
-    print(f'Array shape: {ab_dat.shape}')
-    print(f'Memory usage: {ab_dat.nbytes / 1024 / 1024:.2f} MB')
-    print(f'Processed VCF of {n_sites} for {n_tax}\n')
+    logging.info(f'Array shape: {ab_dat.shape}')
+    logging.info(f'Memory usage: {ab_dat.nbytes / 1024 / 1024:.2f} MB')
+    logging.info(f'Processed VCF of {n_sites} for {n_tax}\n')
     return(tax_list, ab_dat)
 
 

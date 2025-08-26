@@ -12,7 +12,7 @@ The above copyright notice and this permission notice shall be included in all c
 
 THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-Contact: george.tiley@gmail.com
+Contact: gptiley@ncsu.edu
 -------------------------------------------------------------------------------------------------------------------------------------------
 
 estploidy uses a command-line interface to interact with the estploidy package. A successful installation should allow you to access all functions and their help with:
@@ -38,7 +38,8 @@ def cli():
     logging.basicConfig(
        filename = logfile,
        format='%(asctime)s - %(levelname)s - %(message)s',
-       filemode = 'w' 
+       filemode = 'w',
+       level = logging.INFO
     )
     print(f'Created logfile {logfile}')
 
@@ -77,7 +78,7 @@ def individual_frequencies(sample_sheet, vcf_file, minimum_depth, minimum_count,
     start_time = time.process_time()
     logging.info(f'Begin at {start_time}')
     logging.info(f'Checking all individuals in {sample_sheet} are present in {vcf_file}')
-    ind_map = map_individuals(sample_sheet, vcf_file)
+    ind_map = map_individuals(sample_sheet)
     logging.info(f'Checking dimensions of VCF')
     n_sites, n_tax = get_vcf_dimensions(vcf_file, pate_flag, ind_map)
     logging.info(f'Calculating individual allele frequencies from {vcf_file}')
@@ -119,8 +120,8 @@ def individual_frequencies(sample_sheet, vcf_file, minimum_depth, minimum_count,
 @click.option('-m', '--estimation_method', type=str, default='gmm', required=False,
               help = 'Method for fitting a model to allele balance data. Only option currently is gmm'
 )
-@click.option('-p', '--maximum_ploidy', type=int, default=6, required=False,
-              help = 'The maximum expected ploidy of an individual. Must be between two and six.'
+@click.option('-p', '--ploidy_levels', type=str, default='2,4,6', required=False,
+              help = 'The ploidies you would like to test. Only values between two and six are valid.'
 )
 @click.option('-f', '--pate_flag', type=bool, default=False, required=False,
               help = 'Is the VCF a product of the PATE pipeline?'
@@ -128,7 +129,10 @@ def individual_frequencies(sample_sheet, vcf_file, minimum_depth, minimum_count,
 @click.option('-s', '--minimum_sites', type=int, default=100, required=False,
               help = 'What are the minimum number of data points needed to fit a mixture model?'
 )
-def estimate_ploidy(sample_sheet, vcf_file, minimum_depth, minimum_count, minimum_quality, imputation_method, estimation_method, maximum_ploidy, pate_flag, minimum_sites, output_dir):
+@click.option('-e', '--model_contraints', type=int, default=2, required=False,
+              help = 'What parameters should be contrained in the model. 0 is none, 1 is means, and 2 is means and weights.'
+)
+def estimate_ploidy(sample_sheet, vcf_file, minimum_depth, minimum_count, minimum_quality, imputation_method, estimation_method, ploidy_levels, pate_flag, minimum_sites, model_contraints, output_dir):
     from estploidy.utils import map_individuals
     from estploidy.utils import check_dir
     from estploidy.utils import get_vcf_dimensions
@@ -138,7 +142,7 @@ def estimate_ploidy(sample_sheet, vcf_file, minimum_depth, minimum_count, minimu
     start_time = time.process_time()
     logging.info(f'Begin at {start_time}')
     logging.info(f'Checking all individuals in {sample_sheet} are present in {vcf_file}')
-    ind_map = map_individuals(sample_sheet, vcf_file)
+    ind_map = map_individuals(sample_sheet)
     logging.info(f'Checking dimensions of VCF')
     n_sites, n_tax = get_vcf_dimensions(vcf_file, pate_flag, ind_map)
     logging.info(f'Calculating individual allele frequencies from {vcf_file}')
@@ -147,8 +151,9 @@ def estimate_ploidy(sample_sheet, vcf_file, minimum_depth, minimum_count, minimu
             check_dir(output_dir)
             logging.info(f'Matrix of allele frequencies for each individual will be written to: {output_dir}')
             tax_list, ab_mat = get_ind_freqs(n_sites, n_tax, ind_map, vcf_file, minimum_depth, minimum_count, minimum_quality, pate_flag, output_dir)
-            est_ploidy(tax_list, ab_mat, estimation_method, maximum_ploidy, minimum_sites, output_dir)
-        
+            ploidy_df = est_ploidy(tax_list, ab_mat, estimation_method, ploidy_levels, minimum_sites, model_contraints, output_dir)
+            logging.info('Ploidy estimates returned based on Gaussian mixture models')
+            logging.info(ploidy_df.head())
     else:
         click.echo(f'Warning: Imputation method {imputation_method} is not supported. Skipping allele frequencies.')
     end_time = time.process_time()
