@@ -1,5 +1,7 @@
 import pandas as pd
 import os
+import logging
+import sys
 
 def check_dir(my_dir):
     if os.path.exists(my_dir):
@@ -11,9 +13,9 @@ def check_dir(my_dir):
 def decompress_vcf(vcf_file):
     print(f'{vcf_file}\n')
 
-def map_individuals(sample_sheet, vcf_file):
+def map_individuals(sample_sheet):
     '''
-    Returns a dict mapping individual ids in the vcf to individual names that should be used for output. Confirms individuals are present in VCF and warns if missing.
+    Returns a dict mapping individual ids in the vcf to populations. Confirms individuals are present in VCF and warns if missing.
 
     Parameters:
         sample_sheet (string): a sample sheet mapping individual ids to individual names and population names
@@ -23,15 +25,21 @@ def map_individuals(sample_sheet, vcf_file):
         ind_map (dict): a dictionary where keys are ids in the vcf and values are preferred names in downstream output
     '''
     df = pd.read_csv(sample_sheet,header=0)
-    print(df.head)
+    logging.info('')
+    logging.info(df.head())
     ind_map = df.set_index('individual').to_dict('index')
-    print(ind_map)
+    #print(ind_map)
     return(ind_map)
 
 def get_vcf_dimensions(vcf_file, pate_flag, ind_map):
+    """
+    Get the number of individuals and number of sites from the vcf in order to get dimensions for allocation of numpy arrays.
+    Perform an additional check to ensure that all individuals specified in the ind_map are present in the vcf.
+    """
     n_tax = 0
     n_sites = 0
     skip_header = 1
+    tax_list = []
     with open(vcf_file,'r') as fh:
         for line in fh:
             line = line.strip()
@@ -50,6 +58,7 @@ def get_vcf_dimensions(vcf_file, pate_flag, ind_map):
                     else:
                         this_tax = temp[i]
                     #print(this_tax)
+                    tax_list.append(this_tax)
                     if this_tax in ind_map.keys():
                         n_tax = n_tax + 1
                 skip_header = 0
@@ -58,5 +67,12 @@ def get_vcf_dimensions(vcf_file, pate_flag, ind_map):
                     temp = line.split()
                     if (temp[6] == 'PASS' or ((pate_flag == True) and temp[6] == '.')):
                         n_sites = n_sites + 1
-    print(f'Found {n_sites} sites and {n_tax} individuals')
+    if n_tax < len(ind_map.keys()):
+        logging.warning('Not all indivuals in mapping file are present in VCF. Checking for mismatches...')
+        for i in ind_map.keys():
+            if i not in tax_list:
+                logging.warning(f'{i} found in mapping file but not VCF!')
+        logging.error('Stopping to make corrections to mapping file!')
+        sys.exit()
+    logging.info(f'Found {n_sites} sites and {n_tax} individuals')
     return n_sites,n_tax
