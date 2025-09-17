@@ -7,17 +7,19 @@ This package is in development and not intended for use.
 ## Installation
 
 ### Conda Install
-Soon
+```python
+conda env create -f environment.yml
+conda activate estploidy
+```
+The *environment.yml* file was created from the estploidy development environment with `conda env export --from-history > environment.yml`.
 
 ### Pip Install
-The package has no dependencies outside of the Anaconda Distribution. Thus, it should be possible to install directly in the base environment by cloning the directory and using `pip install .` in the root of the repo. To create an isolated conda enironment for the install, here was the one I used for testing:
+A *requirements.txt* file is provided for easy pip install of dependencies. This can be done system-wide or within a new conda environment. The pip installation is tested on Python versions 3.11 and 3.12 across ubuntu, macos, and windows.
 
 ```python
-conda create --name estploidy python=3.11
-conda install --name estploidy scikit-learn
-conda install --name estploidy pandas=2.2.2
-conda install --name estploidy click
-conda install --name estploidy matplotlib=3.10.5
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+pip install .
 ```
 
-This estploidy environement was used to generate the *requirements.txt* and *environement.yml* files. Either could be used to install dependencies with `pip install -r requirements.txt` or `conda env create -f environment.yml`, respectively. The *requirements.txt* file was created from within the environment with `pip list --format=freeze > requirements.txt` and the *enironment.yml* file was created with `conda env export -n estploidy > environment.yml`.
+The *requirements.txt* file was created from within the environment with `pip list --format=freeze > requirements.txt`.
