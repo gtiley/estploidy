@@ -51,10 +51,10 @@ def est_ploidy(tax_list, ab_dat, method, ploidy_levels, minimum_sites, model_con
             if n_sites >= minimum_sites:
                 logging.info(f"Individual {ind_name}: {n_sites} sites")
                 best_n, predictions = fit_gmm_to_ab(ind_name, dat, ploidy, model_constraints, output_dir)
-                print(predictions)
-                print(type(ind_dat_filtered_truncated))
-                print(type(ind_dat_filtered_truncated))
-                print(type(predictions))
+                #print(predictions)
+                #print(type(ind_dat_filtered_truncated))
+                #print(type(ind_dat_filtered_truncated))
+                #print(type(predictions))
 
                 if best_n > 2:
                     lmm_result, rand_effects, fixed_effects, p_value = fit_mixed_model_ab(ind_name, ind_dat_filtered_truncated, ind_depth_filtered_truncated, predictions, output_dir)
