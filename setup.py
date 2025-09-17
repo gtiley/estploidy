@@ -18,8 +18,8 @@ setup(
         'scikit-learn>=1.5.1',
         'click>=8.1.7',
         'matplotlib>=3.10.5',
-        'scipy>=1.15.2'
-        'seaborn>=0.13.2'
+        'scipy>=1.15.2',
+        'seaborn>=0.13.2',
         'statsmodels>=0.14.5'
     ],
     entry_points = '''
