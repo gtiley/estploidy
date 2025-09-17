@@ -12,12 +12,15 @@ setup(
     url='https://github.com/gtiley/estploidy',
     py_modules = ['estploidy_cli'],
     packages=find_packages(include=["estploidy","estploidy.*"]),
-    python_requires=">=3.8",
+    python_requires=">=3.11",
     install_requires=[
         'pandas>=2.2.2',
         'scikit-learn>=1.5.1',
         'click>=8.1.7',
-        'matplotlib>=3.10.5'
+        'matplotlib>=3.10.5',
+        'scipy>=1.15.2'
+        'seaborn>=0.13.2'
+        'statsmodels>=0.14.5'
     ],
     entry_points = '''
         [console_scripts]
