@@ -86,4 +86,3 @@ dependencies:
   - zstd=1.5.7=h6491c7d_2
   - pip:
       - estploidy==0.1.0
-prefix: /Users/georgetiley/anaconda3/envs/estploidy
