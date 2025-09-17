@@ -72,12 +72,22 @@ def plot_lmm_fit(ind_name, alt_count_data, ref_count_data, site_class, lmm_resul
         'Ref Counts': ref_count_data,
         'Component': [f'Component {x}' for x in site_class]})
     print(plot_df.head())
-    
+
+    # Get unique components in sorted order
+    unique_components = sorted(plot_df['Component'].unique())
+    n_colors = len(unique_components)
+
+    # Create color palette with explicit ordering
+    sns_colors = sns.color_palette('tab10', n_colors)
+    component_colors = dict(zip(unique_components, sns_colors))
+
     # Create base scatter plot
     sns.scatterplot(data=plot_df, 
                     x='Alt Counts', 
                     y='Ref Counts',
                     hue='Component',
+                    hue_order=unique_components,
+                    palette=component_colors,
                     alpha=0.5)
     
     # Generate prediction lines
@@ -104,32 +114,32 @@ def plot_lmm_fit(ind_name, alt_count_data, ref_count_data, site_class, lmm_resul
                     color='gray', alpha=0.2, label='95% CI')
     
     # Plot group-specific prediction lines
-    if len(lmm_result.random_effects.items()) > 1:
-        # Create color map
-        n_colors = len(lmm_result.random_effects)
-        color_map = dict(zip(
-            lmm_result.random_effects.keys(),
-            plt.cm.tab10(np.linspace(0, 1, n_colors))
-        ))
+    #print(lmm_result.random_effects)
+    if len(lmm_result.random_effects) > 1:
+        # Color map is now created up above to ensure correct ordering of components by seaborn
+        #n_colors = len(lmm_result.random_effects)
+        #color_map = dict(zip(
+        #    lmm_result.random_effects.keys(),
+        #    sns_colors
+        #))
         
         # Plot each group's prediction line
         for group, effect in lmm_result.random_effects.items():
-            try:
-                # Get random effect for this group
-                group_effect = effect.iloc[0, 0]  # First value is the random intercept
+            # Get random effect for this group
+            #print(f'Successfull accessed random intercept for group {group}')
+            #print(group)
+            #print(effect)
+            group_effect = effect.iloc[0]  # First value is the random intercept
                 
-                # Calculate group-specific prediction
-                group_prediction = (intercept + group_effect) + ref_count_effect * ref_count_range
-                
-                # Plot with color from map
-                plt.plot(ref_count_range, group_prediction,
-                        '--', color=color_map[group], alpha=0.8,
-                        label=f'Component {group} Prediction',
-                        linewidth=1.5)
-                
-            except Exception as e:
-                logging.warning(f"Could not plot prediction for group {group}: {str(e)}")
-                continue
+            # Calculate group-specific prediction
+            group_prediction = (intercept - group_effect) + ref_count_effect * ref_count_range
+            #print(f'Group prediction is {group_prediction}')
+            # Plot with color from map
+            component_key = f'Component {group}'
+            plt.plot(ref_count_range, group_prediction,
+                    '--', color=component_colors[component_key], alpha=0.8,
+                    label=f'{component_key} Prediction',
+                    linewidth=1.5)
     
     # Adjust legend to show both points and lines
     handles, labels = plt.gca().get_legend_handles_labels()

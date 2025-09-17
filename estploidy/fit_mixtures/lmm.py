@@ -52,7 +52,7 @@ def fit_mixed_model_ab(ind_name: str,
     result = model.fit()
     random_effects = result.random_effects
     fixed_effects = result.fe_params
-    print(type(result))
+    #print(type(result))
     plot_lmm_fit(ind_name, alt_count_data, ref_count_data, gmm_predictions, result, output_dir)
 
     # Test if the group effect is significantly better than no group effect
