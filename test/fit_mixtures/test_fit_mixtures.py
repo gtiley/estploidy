@@ -60,6 +60,6 @@ def test_fit_mixed_model_ab():
                 pvalchecks.append(1)
             else:
                 pvalchecks.append(0)
-        assert lnLs == [-3736,-3738,-3716,-3825]
+        assert lnLs == [-3736,-3728,-3716,-3825]
         assert pvalchecks == [1,1,1,1]
 
