@@ -1,8 +1,8 @@
-# ci-pip.yml
+# ci-install.yml
 # This workflow is triggered on push or pull request events to the main branch.
 # It runs a series of jobs to set up the environment, install dependencies, and run tests.
 
-name: CI with pip
+name: CI with pip and conda
 on:
   push:
     branches:
@@ -45,6 +45,47 @@ jobs:
       - name: Run tests
         run:  |
           pytest test/ --cov=estploidy --cov-report=xml
+  
+  conda-test:
+    name: Test conda install
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ['3.11','3.12']
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+            token: ${{ secrets.GH_PAT }}
+
+      - name: Set up Conda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          auto-update-conda: true
+          python-version: ${{ matrix.python-version }}
+          channels: conda-forge,defaults
+
+      - name: Install with conda
+        shell: bash -el {0}
+        run: |
+          conda env create -f environment.yml
+          conda activate estploidy
+          pip install pytest pytest-cov
+
+      - name: Check help menu
+        shell: bash -el {0}
+        run: |
+          conda activate estploidy
+          estploidy --help
+
+      - name: Run tests
+        shell: bash -el {0}
+        run: |
+          conda activate estploidy
+          pytest test/ --cov=estploidy --cov-report=xml
+
 
     # Revisit the idea of a codecov badge but check on app install specifics
     # - name: Upload coverage
