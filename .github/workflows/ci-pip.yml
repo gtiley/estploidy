@@ -43,7 +43,7 @@ jobs:
 
       - name: Run tests
         run:  |
-          pytest test/ --cov=estploidy --cov-report=xml
+          pytest test/
 
     # Revisit the idea of a codecov badge but check on app install specifics
     # - name: Upload coverage

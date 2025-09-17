@@ -1,6 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import norm
+import pandas as pd
+import seaborn as sns
+import logging
 
 def plot_gmm_fit_sklearn(data, gmm, output_dir, plot_name="result.fit.png", n_points=1000, title="GMM Fit to Data"):
     """
@@ -43,4 +46,105 @@ def plot_gmm_fit_sklearn(data, gmm, output_dir, plot_name="result.fit.png", n_po
     plt.legend()
     plt.grid(True, alpha=0.3)
     plt.savefig(f'{output_dir}/{plot_name}.png', dpi=300)
-    plt.close()
+    plt.close('all')
+
+
+def plot_lmm_fit(ind_name, alt_count_data, ref_count_data, site_class, lmm_result, output_dir):
+    """
+    Create scatter plot of allele balance vs depth, colored by GMM component,
+    with fitted LMM regression lines and confidence intervals.
+    
+    Parameters:
+        ind_name: Name of individual for plot title
+        alt_count_data: Array of counts for alternate allele
+        ref_count_data: Array of counts for reference allele
+        site_class: Array of GMM component assignments
+        lmm_result: Fitted statsmodels MixedLM object
+        output_dir: Directory to save plot
+    """
+    print(f'Creating lmm figure for {ind_name} in {output_dir}')
+    # Create figure
+    plt.figure(figsize=(12, 6))
+    
+    # Create DataFrame for plotting
+    plot_df = pd.DataFrame({
+        'Alt Counts': alt_count_data,
+        'Ref Counts': ref_count_data,
+        'Component': [f'Component {x}' for x in site_class]})
+    print(plot_df.head())
+    
+    # Create base scatter plot
+    sns.scatterplot(data=plot_df, 
+                    x='Alt Counts', 
+                    y='Ref Counts',
+                    hue='Component',
+                    alpha=0.5)
+    
+    # Generate prediction lines
+    ref_count_range = np.linspace(ref_count_data.min(), ref_count_data.max(), 100)
+    
+    # Get fixed effect coefficients
+    intercept = lmm_result.fe_params['Intercept']
+    ref_count_effect = lmm_result.fe_params['ref_counts']
+    
+    # Calculate confidence intervals
+    conf_int = lmm_result.conf_int()
+    lower_intercept, upper_intercept = conf_int.loc['Intercept']
+    lower_ref_count, upper_ref_count = conf_int.loc['ref_counts']
+    
+    # Plot overall fixed effect line
+    plt.plot(ref_count_range, 
+            intercept + ref_count_effect * ref_count_range,
+            'k-', label='Population Average', linewidth=2)
+    
+    # Plot confidence intervals
+    plt.fill_between(ref_count_range,
+                    lower_intercept + lower_ref_count * ref_count_range,
+                    upper_intercept + upper_ref_count * ref_count_range,
+                    color='gray', alpha=0.2, label='95% CI')
+    
+    # Plot group-specific prediction lines
+    if len(lmm_result.random_effects.items()) > 1:
+        # Create color map
+        n_colors = len(lmm_result.random_effects)
+        color_map = dict(zip(
+            lmm_result.random_effects.keys(),
+            plt.cm.tab10(np.linspace(0, 1, n_colors))
+        ))
+        
+        # Plot each group's prediction line
+        for group, effect in lmm_result.random_effects.items():
+            try:
+                # Get random effect for this group
+                group_effect = effect.iloc[0, 0]  # First value is the random intercept
+                
+                # Calculate group-specific prediction
+                group_prediction = (intercept + group_effect) + ref_count_effect * ref_count_range
+                
+                # Plot with color from map
+                plt.plot(ref_count_range, group_prediction,
+                        '--', color=color_map[group], alpha=0.8,
+                        label=f'Component {group} Prediction',
+                        linewidth=1.5)
+                
+            except Exception as e:
+                logging.warning(f"Could not plot prediction for group {group}: {str(e)}")
+                continue
+    
+    # Adjust legend to show both points and lines
+    handles, labels = plt.gca().get_legend_handles_labels()
+    plt.xlabel('Reference Allele Count')
+    plt.ylabel('Alternate Allele Count')
+    plt.title(f'Ref Vs. Alt Counts - {ind_name}')
+    plt.legend(handles, labels, 
+              bbox_to_anchor=(1.05, 1),
+              loc='upper left',
+              title='Components')
+    
+    output_file = f'{output_dir}/{ind_name}.lmm.png'
+    plt.savefig(output_file, 
+                dpi=300, 
+                bbox_inches='tight',  # This ensures the legend is included
+                pad_inches=0.5)      # Add padding around the plot
+    plt.close('all')
+    logging.info("Scatterplot of ref versus alt counts saved successfully")
